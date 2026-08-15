@@ -1,0 +1,24 @@
+name: HardEnchant
+version: '1.0.0'
+main: com.hardenchant.HardEnchantPlugin
+api-version: '1.20'
+author: You
+description: >
+  Lets admins apply enchantments above vanilla max level via command only.
+  Actively strips/blocks those levels from loot, villager trades, the
+  enchanting table, and the anvil so they cannot be earned naturally.
+
+commands:
+  hardenchant:
+    description: Manage admin-only extended-level enchantments.
+    aliases: [hench, hardench]
+    usage: |
+      /hardenchant give <player> <enchant> <level>
+      /hardenchant book <player> <enchant> <level>
+      /hardenchant remove <player> <enchant>
+      /hardenchant list
+
+permissions:
+  hardenchant.admin:
+    description: Full access to all HardEnchant commands.
+    default: op

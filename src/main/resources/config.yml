@@ -1,0 +1,41 @@
+# HardEnchant config
+#
+# extended-enchants: maps a vanilla enchantment (by its Minecraft key, no
+# "minecraft:" prefix needed) to the maximum level it is allowed to reach
+# through this plugin's commands. Any enchant NOT listed here is left at its
+# normal vanilla max and cannot be pushed higher (give/book will just clamp
+# to vanilla max for it).
+#
+# These extended levels can ONLY be reached through /hardenchant give or
+# /hardenchant book. The plugin's listeners will strip/clamp any enchant
+# level above vanilla max that shows up from loot generation, villager
+# trades, the enchanting table, or anvil combining.
+
+extended-enchants:
+  sharpness: 10
+  smite: 10
+  bane_of_arthropods: 10
+  power: 10
+  protection: 8
+  blast_protection: 8
+  fire_protection: 8
+  projectile_protection: 8
+  efficiency: 10
+  fortune: 6
+  looting: 6
+  unbreaking: 6
+  punch: 4
+  knockback: 4
+
+# Messages
+messages:
+  no-permission: "&cYou don't have permission to do that."
+  player-not-found: "&cPlayer not found."
+  unknown-enchant: "&cUnknown enchantment: %enchant%"
+  invalid-level: "&cLevel must be a positive whole number."
+  need-item-in-hand: "&cHold an item in your main hand first."
+  gave-enchant: "&aApplied %enchant% %level% to %player%'s held item."
+  gave-book: "&aGave %player% an enchanted book: %enchant% %level%."
+  removed-enchant: "&aRemoved %enchant% from %player%'s held item."
+  no-such-enchant-on-item: "&cThat item doesn't have that enchantment."
+  anvil-blocked: "&cThis item carries an admin-only enchantment level and cannot be combined in an anvil."
