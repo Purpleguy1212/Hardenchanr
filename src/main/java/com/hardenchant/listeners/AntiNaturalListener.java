@@ -97,9 +97,13 @@ public class AntiNaturalListener implements Listener {
     }
 
     // ---------- Anvil ----------
-    // Block any anvil enchantment-combine that involves an item already
-    // carrying an admin-only, above-vanilla enchant level. Plain repairs
-    // (repair material in slot 2) and renaming alone are still allowed.
+    // Applying an admin-granted book/item to gear is allowed (that's the
+    // normal, intended way to put the enchant onto equipment). What's
+    // blocked is specifically the case that would let players climb past
+    // the admin-granted level: combining two items that already carry the
+    // SAME enchant at the SAME above-vanilla level, since vanilla's anvil
+    // rule bumps matching levels up by +1 - that's the one path that would
+    // let players self-escalate past what an admin granted.
     @EventHandler(priority = EventPriority.HIGH)
     public void onPrepareAnvil(PrepareAnvilEvent event) {
         AnvilInventory inv = event.getInventory();
@@ -109,12 +113,34 @@ public class AntiNaturalListener implements Listener {
         if (base == null || second == null) return; // not a combine operation
         if (!hasEnchantments(second)) return; // plain repair material, allow it
 
-        if (hasForbiddenEnchant(base) || hasForbiddenEnchant(second)) {
-            event.setResult(null);
-            for (HumanEntity viewer : inv.getViewers()) {
-                viewer.sendMessage(plugin.msg("anvil-blocked"));
+        Map<Enchantment, Integer> baseEnchants = allEnchants(base);
+        Map<Enchantment, Integer> secondEnchants = allEnchants(second);
+
+        for (Map.Entry<Enchantment, Integer> e : secondEnchants.entrySet()) {
+            Enchantment ench = e.getKey();
+            int secondLevel = e.getValue();
+            if (!cfg.isAboveVanilla(ench, secondLevel)) continue; // normal vanilla enchant, ignore
+
+            Integer baseLevel = baseEnchants.get(ench);
+            if (baseLevel != null && baseLevel.intValue() == secondLevel) {
+                // Same admin-only enchant at the same level on both items -
+                // this is exactly the vanilla "+1 on match" case. Block it.
+                event.setResult(null);
+                for (HumanEntity viewer : inv.getViewers()) {
+                    viewer.sendMessage(plugin.msg("anvil-blocked"));
+                }
+                return;
             }
         }
+    }
+
+    private Map<Enchantment, Integer> allEnchants(ItemStack item) {
+        Map<Enchantment, Integer> result = new HashMap<>(item.getEnchantments());
+        ItemMeta meta = item.getItemMeta();
+        if (meta instanceof EnchantmentStorageMeta storage) {
+            result.putAll(storage.getStoredEnchants());
+        }
+        return result;
     }
 
     // ---------------- helpers ----------------
@@ -126,20 +152,6 @@ public class AntiNaturalListener implements Listener {
         if (!item.getEnchantments().isEmpty()) return true;
         if (meta instanceof EnchantmentStorageMeta storage) {
             return !storage.getStoredEnchants().isEmpty();
-        }
-        return false;
-    }
-
-    private boolean hasForbiddenEnchant(ItemStack item) {
-        if (item == null) return false;
-        for (Map.Entry<Enchantment, Integer> e : item.getEnchantments().entrySet()) {
-            if (cfg.isAboveVanilla(e.getKey(), e.getValue())) return true;
-        }
-        ItemMeta meta = item.getItemMeta();
-        if (meta instanceof EnchantmentStorageMeta storage) {
-            for (Map.Entry<Enchantment, Integer> e : storage.getStoredEnchants().entrySet()) {
-                if (cfg.isAboveVanilla(e.getKey(), e.getValue())) return true;
-            }
         }
         return false;
     }
