@@ -97,24 +97,30 @@ public class AntiNaturalListener implements Listener {
     }
 
     // ---------- Anvil ----------
-    // Applying an admin-granted book/item to gear is allowed (that's the
-    // normal, intended way to put the enchant onto equipment). What's
-    // blocked is specifically the case that would let players climb past
-    // the admin-granted level: combining two items that already carry the
-    // SAME enchant at the SAME above-vanilla level, since vanilla's anvil
-    // rule bumps matching levels up by +1 - that's the one path that would
-    // let players self-escalate past what an admin granted.
+    // Vanilla's own anvil merge logic clamps enchantment levels to their
+    // normal max as part of computing the result, before this plugin ever
+    // sees it - so simply "allowing" the combine isn't enough, the result
+    // comes back already capped. We patch the admin-only enchant level back
+    // onto the result item after vanilla computes it, UNLESS both items
+    // already carry that enchant at the exact same admin-only level (the
+    // vanilla "+1 on match" case), which we still block to stop players
+    // from climbing past what was granted.
     @EventHandler(priority = EventPriority.HIGH)
     public void onPrepareAnvil(PrepareAnvilEvent event) {
         AnvilInventory inv = event.getInventory();
         ItemStack base = inv.getItem(0);
         ItemStack second = inv.getItem(1);
+        ItemStack vanillaResult = event.getResult();
 
-        if (base == null || second == null) return; // not a combine operation
+        if (base == null || second == null || vanillaResult == null) return;
         if (!hasEnchantments(second)) return; // plain repair material, allow it
 
         Map<Enchantment, Integer> baseEnchants = allEnchants(base);
         Map<Enchantment, Integer> secondEnchants = allEnchants(second);
+
+        ItemStack fixedResult = vanillaResult.clone();
+        ItemMeta fixedMeta = fixedResult.getItemMeta();
+        boolean changed = false;
 
         for (Map.Entry<Enchantment, Integer> e : secondEnchants.entrySet()) {
             Enchantment ench = e.getKey();
@@ -131,6 +137,19 @@ public class AntiNaturalListener implements Listener {
                 }
                 return;
             }
+
+            int resultLevel = Math.max(secondLevel, baseLevel == null ? 0 : baseLevel);
+            if (fixedMeta instanceof EnchantmentStorageMeta storage) {
+                storage.addStoredEnchant(ench, resultLevel, true);
+            } else {
+                fixedMeta.addEnchant(ench, resultLevel, true);
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            fixedResult.setItemMeta(fixedMeta);
+            event.setResult(fixedResult);
         }
     }
 
